@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智能九宫格图片分割系统</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(145deg, #0f2027, #203a43, #2c5364);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #fff;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            width: 1000px;
+            max-width: 90%;
+            text-align: center;
+            transition: transform 0.3s ease;
+        }
+        .container:hover {
+            transform: translateY(-5px);
+        }
+        h1 {
+            font-size: 3em;
+            margin-bottom: 30px;
+            color: #ffffff;
+            text-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+            letter-spacing: 2px;
+        }
+        .upload-area {
+            margin: 30px 0;
+            padding: 40px;
+            border: 3px dashed rgba(255, 255, 255, 0.5);
+            border-radius: 15px;
+            cursor: pointer;
+            background: rgba(255, 255, 255, 0.03);
+            transition: all 0.3s ease;
+        }
+        .upload-area:hover {
+            border-color: #00ddeb;
+            background: rgba(255, 255, 255, 0.1);
+        }
+        .upload-area.dragover {
+            border-color: #00ddeb;
+            background: rgba(0, 221, 235, 0.2);
+        }
+        #preview {
+            max-width: 400px;
+            max-height: 400px;
+            margin: 20px auto;
+            border-radius: 10px;
+            display: none;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
+        }
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-top: 30px;
+            display: none;
+        }
+        .grid-item {
+            position: relative;
+            overflow: hidden;
+            border-radius: 10px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+            transition: transform 0.3s ease;
+        }
+        .grid-item:hover {
+            transform: scale(1.05);
+        }
+        .grid-item img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+        .button-group {
+            margin-top: 30px;
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+        }
+        .action-btn {
+            padding: 15px 40px;
+            border: none;
+            border-radius: 50px;
+            font-size: 1.2em;
+            cursor: pointer;
+            color: #fff;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+        #splitBtn {
+            background: linear-gradient(90deg, #ff416c, #ff4b2b);
+            display: none;
+        }
+        #splitBtn:hover {
+            background: linear-gradient(90deg, #ff5a7f, #ff6947);
+            transform: translateY(-3px);
+        }
+        #downloadAllBtn {
+            background: linear-gradient(90deg, #00c6ff, #0072ff);
+            display: none;
+        }
+        #downloadAllBtn:hover {
+            background: linear-gradient(90deg, #00ddeb, #0095ff);
+            transform: translateY(-3px);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>(Copyright © 2025 CSDN@HNUSTer)</h1>
+        <h1>智能九宫格图片分割系统</h1>
+        <div class="upload-area" id="uploadArea">
+            点击上传或拖拽图片至此
+            <input type="file" id="imageInput" accept="image/*" style="display: none;">
+        </div>
+        <img id="preview" alt="预览">
+        <div class="button-group">
+            <button id="splitBtn" class="action-btn">分割图片</button>
+            <button id="downloadAllBtn" class="action-btn">一键下载</button>
+        </div>
+        <div class="grid-container" id="gridContainer"></div>
+    </div>
+ 
+    <script>
+        const uploadArea = document.getElementById('uploadArea');
+        const imageInput = document.getElementById('imageInput');
+        const preview = document.getElementById('preview');
+        const splitBtn = document.getElementById('splitBtn');
+        const downloadAllBtn = document.getElementById('downloadAllBtn');
+        const gridContainer = document.getElementById('gridContainer');
+        let originalImage = null;
+        let tiles = [];
+ 
+        // 上传区域点击事件
+        uploadArea.addEventListener('click', () => imageInput.click());
+        
+        // 拖拽事件
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const file = e.dataTransfer.files[0];
+            handleImage(file);
+        });
+ 
+        // 文件选择事件
+        imageInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            handleImage(file);
+        });
+ 
+        // 处理图片
+        function handleImage(file) {
+            if (file && file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    preview.src = e.target.result;
+                    preview.style.display = 'block';
+                    splitBtn.style.display = 'block';
+                    downloadAllBtn.style.display = 'none';
+                    gridContainer.style.display = 'none';
+                    originalImage = new Image();
+                    originalImage.src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+ 
+        // 分割图片
+        splitBtn.addEventListener('click', () => {
+            if (!originalImage) return;
+ 
+            gridContainer.innerHTML = '';
+            gridContainer.style.display = 'grid';
+            tiles = [];
+ 
+            const width = originalImage.width;
+            const height = originalImage.height;
+            const tileWidth = width / 3;
+            const tileHeight = height / 3;
+ 
+            for (let i = 0; i < 3; i++) {
+                for (let j = 0; j < 3; j++) {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = tileWidth;
+                    canvas.height = tileHeight;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(
+                        originalImage,
+                        j * tileWidth,
+                        i * tileHeight,
+                        tileWidth,
+                        tileHeight,
+                        0,
+                        0,
+                        tileWidth,
+                        tileHeight
+                    );
+ 
+                    const img = document.createElement('img');
+                    img.src = canvas.toDataURL('image/png');
+                    tiles.push({ src: img.src, row: i, col: j });
+ 
+                    const gridItem = document.createElement('div');
+                    gridItem.className = 'grid-item';
+                    gridItem.appendChild(img);
+                    gridContainer.appendChild(gridItem);
+                }
+            }
+            downloadAllBtn.style.display = 'block';
+        });
+ 
+        // 一键下载所有图片
+        downloadAllBtn.addEventListener('click', () => {
+            tiles.forEach((tile, index) => {
+                setTimeout(() => {
+                    const link = document.createElement('a');
+                    link.href = tile.src;
+                    link.download = `tile_${tile.row}_${tile.col}.png`;
+                    link.click();
+                }, index * 100); // 添加短暂延迟避免浏览器限制
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,20 @@
+{
+  "name": "node_pachong",
+  "version": "1.0.0",
+  "description": "node爬虫",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "gzca",
+  "license": "ISC",
+  "dependencies": {
+    "axios": "^1.8.1",
+    "cheerio": "^1.0.0-rc.12",
+    "http-proxy-agent": "^7.0.2",
+    "https": "^1.0.0",
+    "https-proxy-agent": "^7.0.6",
+    "request": "^2.88.2",
+    "xlsx": "^0.18.5"
+  }
+}
